@@ -3,10 +3,12 @@ import { CalculatorState, ButtonVariant, HistoryItem } from '../types';
 import Display from './Display';
 import Button from './Button';
 import History from './History';
-import AIModal from './AIModal';
+import AIView from './AIModal';
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+type Tab = 'standard' | 'scientific' | 'history' | 'ai';
 
 const Calculator: React.FC = () => {
   const [state, setState] = useState<CalculatorState>({
@@ -19,8 +21,16 @@ const Calculator: React.FC = () => {
     error: null,
   });
 
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('standard');
+
+  // Sync isScientific state with tab
+  useEffect(() => {
+    if (activeTab === 'scientific') {
+      setState(s => ({ ...s, isScientific: true }));
+    } else if (activeTab === 'standard') {
+      setState(s => ({ ...s, isScientific: false }));
+    }
+  }, [activeTab]);
 
   // --- Logic Helpers ---
 
@@ -208,7 +218,8 @@ const Calculator: React.FC = () => {
       currentValue: item.result,
       overwriteNext: true
     }));
-    setHistoryOpen(false);
+    // Switch back to standard view to see/use the value
+    setActiveTab('standard');
   };
 
   const handleAIResult = (result: string) => {
@@ -218,11 +229,16 @@ const Calculator: React.FC = () => {
       overwriteNext: true,
       error: null
     }));
+    // Switch back to standard view to see the result
+    setActiveTab('standard');
   };
 
   // Keyboard support
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Allow keyboard input only on calc tabs
+      if (activeTab === 'history' || activeTab === 'ai') return;
+
       if (e.key >= '0' && e.key <= '9') handleNumber(e.key);
       if (e.key === '.') handleNumber('.');
       if (e.key === 'Enter') { e.preventDefault(); handleEquals(); }
@@ -237,7 +253,7 @@ const Calculator: React.FC = () => {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+  }, [activeTab]); // Re-bind when tab changes
 
   return (
     <div className="relative w-full h-full flex flex-col bg-slate-950 overflow-hidden">
@@ -246,34 +262,39 @@ const Calculator: React.FC = () => {
       <div className="absolute top-0 left-0 w-full h-1/2 bg-purple-900/10 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-0 right-0 w-full h-1/2 bg-indigo-900/10 blur-[120px] pointer-events-none"></div>
 
-      {/* Header Controls */}
-      <div className="flex justify-between items-center p-6 z-10 shrink-0 absolute top-0 w-full">
-        <button 
-          onClick={() => setHistoryOpen(!historyOpen)}
-          className={`p-3 rounded-2xl transition-all duration-200 ${historyOpen ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-900 hover:text-slate-200'}`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>
-        </button>
-        
-        <div className="flex gap-3">
+      {/* Navigation Tabs */}
+      <div className="flex justify-center p-4 z-20 shrink-0">
+        <div className="flex bg-slate-900/80 p-1.5 rounded-full border border-slate-800 shadow-lg backdrop-blur-md">
            <button 
-             onClick={() => setAiModalOpen(true)}
-             className="flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-all hover:scale-105 shadow-xl shadow-purple-900/30"
+             onClick={() => setActiveTab('standard')}
+             className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'standard' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-              <span>Ask AI</span>
+             Standard
            </button>
            <button 
-             onClick={() => setState(p => ({...p, isScientific: !p.isScientific}))}
-             className={`px-5 py-3 rounded-full font-bold border-2 transition-all ${state.isScientific ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-transparent border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'}`}
+             onClick={() => setActiveTab('scientific')}
+             className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'scientific' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
            >
-             Sci
+             Scientific
+           </button>
+           <button 
+             onClick={() => setActiveTab('history')}
+             className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+           >
+             History
+           </button>
+           <button 
+             onClick={() => setActiveTab('ai')}
+             className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'ai' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+           >
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+             Ask AI
            </button>
         </div>
       </div>
 
-      {/* Display Area - Expanded Size (approx 40% height) */}
-      <div className="flex-grow-[4] flex flex-col justify-end pb-8 px-8 z-10 shrink-0 min-h-[35%] pt-20">
+      {/* Display Area */}
+      <div className="flex-grow-[3] flex flex-col justify-end pb-4 px-8 z-10 shrink-0 min-h-[30%]">
         <Display 
           value={state.currentValue} 
           expression={state.previousValue ? `${state.previousValue} ${state.operator}` : null} 
@@ -281,60 +302,68 @@ const Calculator: React.FC = () => {
         />
       </div>
 
-      {/* Buttons Grid - (approx 60% height) */}
-      <div className={`flex-grow-[6] grid gap-3 sm:gap-4 p-4 pb-6 z-10 ${state.isScientific ? 'grid-cols-5' : 'grid-cols-4'}`}>
+      {/* Content Area (Switches based on Tab) */}
+      <div className="flex-grow-[7] flex flex-col z-10 bg-slate-900/30 border-t border-slate-800/50 backdrop-blur-sm rounded-t-[3rem] overflow-hidden shadow-2xl">
         
-        {/* Row 1 */}
-        {state.isScientific && <Button label="sin" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('sin')} />}
-        <Button label="AC" variant={ButtonVariant.ACTION} onClick={handleClear} />
-        <Button label={state.isScientific ? "√" : "⌫"} variant={state.isScientific ? ButtonVariant.SCIENTIFIC : ButtonVariant.ACTION} onClick={() => state.isScientific ? handleScientific('√') : handleDelete()} />
-        <Button label="%" variant={ButtonVariant.ACTION} onClick={handlePercent} />
-        <Button label="÷" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('÷')} />
+        {/* Calculator Keypads */}
+        {(activeTab === 'standard' || activeTab === 'scientific') && (
+          <div className={`grid gap-3 sm:gap-4 p-6 w-full h-full ${state.isScientific ? 'grid-cols-5' : 'grid-cols-4'} animate-in slide-in-from-bottom-10 fade-in duration-300`}>
+            
+            {/* Row 1 */}
+            {state.isScientific && <Button label="sin" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('sin')} />}
+            <Button label="AC" variant={ButtonVariant.ACTION} onClick={handleClear} />
+            <Button label={state.isScientific ? "√" : "⌫"} variant={state.isScientific ? ButtonVariant.SCIENTIFIC : ButtonVariant.ACTION} onClick={() => state.isScientific ? handleScientific('√') : handleDelete()} />
+            <Button label="%" variant={ButtonVariant.ACTION} onClick={handlePercent} />
+            <Button label="÷" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('÷')} />
 
-        {/* Row 2 */}
-        {state.isScientific && <Button label="cos" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('cos')} />}
-        <Button label="7" onClick={() => handleNumber('7')} />
-        <Button label="8" onClick={() => handleNumber('8')} />
-        <Button label="9" onClick={() => handleNumber('9')} />
-        <Button label="×" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('×')} />
+            {/* Row 2 */}
+            {state.isScientific && <Button label="cos" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('cos')} />}
+            <Button label="7" onClick={() => handleNumber('7')} />
+            <Button label="8" onClick={() => handleNumber('8')} />
+            <Button label="9" onClick={() => handleNumber('9')} />
+            <Button label="×" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('×')} />
 
-        {/* Row 3 */}
-        {state.isScientific && <Button label="tan" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('tan')} />}
-        <Button label="4" onClick={() => handleNumber('4')} />
-        <Button label="5" onClick={() => handleNumber('5')} />
-        <Button label="6" onClick={() => handleNumber('6')} />
-        <Button label="-" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('-')} />
+            {/* Row 3 */}
+            {state.isScientific && <Button label="tan" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('tan')} />}
+            <Button label="4" onClick={() => handleNumber('4')} />
+            <Button label="5" onClick={() => handleNumber('5')} />
+            <Button label="6" onClick={() => handleNumber('6')} />
+            <Button label="-" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('-')} />
 
-        {/* Row 4 */}
-        {state.isScientific && <Button label="ln" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('ln')} />}
-        <Button label="1" onClick={() => handleNumber('1')} />
-        <Button label="2" onClick={() => handleNumber('2')} />
-        <Button label="3" onClick={() => handleNumber('3')} />
-        <Button label="+" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('+')} />
+            {/* Row 4 */}
+            {state.isScientific && <Button label="ln" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('ln')} />}
+            <Button label="1" onClick={() => handleNumber('1')} />
+            <Button label="2" onClick={() => handleNumber('2')} />
+            <Button label="3" onClick={() => handleNumber('3')} />
+            <Button label="+" variant={ButtonVariant.OPERATOR} onClick={() => handleOperator('+')} />
 
-        {/* Row 5 */}
-        {state.isScientific && <Button label="log" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('log')} />}
-        <Button label="0" onClick={() => handleNumber('0')} />
-        <Button label="00" onClick={() => handleNumber('00')} />
-        <Button label="." onClick={() => handleNumber('.')} />
-        <Button label="=" variant={ButtonVariant.EQUALS} onClick={handleEquals} />
+            {/* Row 5 */}
+            {state.isScientific && <Button label="log" variant={ButtonVariant.SCIENTIFIC} onClick={() => handleScientific('log')} />}
+            <Button label="0" onClick={() => handleNumber('0')} />
+            <Button label="00" onClick={() => handleNumber('00')} />
+            <Button label="." onClick={() => handleNumber('.')} />
+            <Button label="=" variant={ButtonVariant.EQUALS} onClick={handleEquals} />
+          </div>
+        )}
+
+        {/* History View */}
+        {activeTab === 'history' && (
+          <History 
+            history={state.history} 
+            onSelect={handleHistorySelect} 
+            onClear={() => setState(p => ({...p, history: []}))}
+          />
+        )}
+
+        {/* AI View */}
+        {activeTab === 'ai' && (
+          <AIView 
+            isActive={activeTab === 'ai'}
+            onResult={handleAIResult}
+          />
+        )}
+
       </div>
-
-      {/* History Side Panel */}
-      <History 
-        history={state.history} 
-        onSelect={handleHistorySelect} 
-        onClear={() => setState(p => ({...p, history: []}))}
-        isOpen={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-      />
-
-      {/* AI Modal */}
-      <AIModal 
-        isOpen={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
-        onResult={handleAIResult}
-      />
     </div>
   );
 };

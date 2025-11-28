@@ -5,48 +5,38 @@ interface HistoryProps {
   history: HistoryItem[];
   onSelect: (item: HistoryItem) => void;
   onClear: () => void;
-  isOpen: boolean;
-  onClose: () => void;
 }
 
-const History: React.FC<HistoryProps> = ({ history, onSelect, onClear, isOpen, onClose }) => {
-  if (!isOpen) return null;
-
+const History: React.FC<HistoryProps> = ({ history, onSelect, onClear }) => {
   return (
-    <div className="absolute inset-y-0 left-0 w-64 bg-slate-900/95 backdrop-blur-xl border-r border-slate-800 shadow-2xl z-20 flex flex-col transition-transform duration-300 ease-in-out transform">
-      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-        <h3 className="text-slate-200 font-semibold">History</h3>
-        <button 
-          onClick={onClose} 
-          className="text-slate-400 hover:text-white p-1"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-      </div>
-      
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+    <div className="w-full h-full bg-slate-900/50 flex flex-col animate-in fade-in duration-300">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {history.length === 0 ? (
-          <div className="text-center text-slate-500 mt-10 text-sm">No history yet</div>
+          <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-60">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <p>No history yet</p>
+          </div>
         ) : (
           history.slice().reverse().map((item) => (
             <button
               key={item.id}
               onClick={() => onSelect(item)}
-              className="w-full text-right p-3 rounded-xl hover:bg-slate-800 transition-colors group flex flex-col items-end"
+              className="w-full text-right p-4 rounded-2xl bg-slate-800/50 hover:bg-slate-800 transition-all group flex flex-col items-end border border-transparent hover:border-slate-700"
             >
-              <span className="text-xs text-slate-400 group-hover:text-slate-300 mb-1">{item.expression}</span>
-              <span className="text-lg text-emerald-400 font-mono">{item.result}</span>
+              <span className="text-sm text-slate-400 group-hover:text-slate-300 mb-1 font-mono">{item.expression}</span>
+              <span className="text-2xl text-emerald-400 font-light tracking-wide">{item.result}</span>
             </button>
           ))
         )}
       </div>
 
       {history.length > 0 && (
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800/50 bg-slate-900/30">
           <button
             onClick={onClear}
-            className="w-full py-2 px-4 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-sm font-medium transition-colors"
+            className="w-full py-4 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             Clear History
           </button>
         </div>
